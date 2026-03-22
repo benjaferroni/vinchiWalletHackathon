@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Books - Vinchi Wallet</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        .orderbook-grid { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; align-items: start; }
+        @media (max-width: 768px) { .orderbook-grid { grid-template-columns: 1fr; } }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 14px; color: var(--text-muted); margin-bottom: 5px; }
+        .form-group select, .form-group input { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; }
+        .order-card { border: 1px solid var(--border); border-radius: 12px; padding: 15px; margin-bottom: 15px; background: white; display: flex; flex-direction: column; gap: 10px; }
+        .order-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 5px; }
+        .order-type-badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+        .badge-buy { background: var(--bg-color); color: var(--primary); border: 1px solid var(--border-color); }
+        .badge-sell { background: var(--primary); color: var(--white); }
+        .order-details { display: flex; justify-content: space-between; font-size: 14px; }
+        .order-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 5px; }
+        .empty-orders { text-align: center; padding: 40px; color: var(--text-muted); border: 1px dashed var(--border); border-radius: 12px; }
+        .loader-inline { display: none; color: var(--primary); font-size: 14px; margin-top: 10px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo-group">
+                <img src="logo.png" alt="Vinchi Wallet" class="logo-img" onerror="this.style.display='none'">
+                <h1>Vinchi Wallet</h1>
+            </div>
+            <div class="header-right-top">
+                <div class="network-badge">Fuji Testnet</div>
+            </div>
+            <div class="header-right-bottom">
+            </div>
+        </header>
+
+        <div class="tabs-container">
+            <nav class="tabs">
+                <a href="index.html" class="tab">Dashboard</a>
+                <a href="faucet.html" class="tab">Faucet</a>
+                <a href="orderbook.html" class="tab active">Order Book</a>
+            </nav>
+            <div class="wallet-control">
+                <button class="btn-connect" id="btnConnect" onclick="toggleWallet()">Connect Wallet</button>
+                <span class="wallet-address" id="walletAddressDisplay" style="display: none;"></span>
+            </div>
+        </div>
+
+        <main class="dashboard">
+            <div class="orderbook-grid">
+                <!-- Section 1: Create Order -->
+                <section class="card">
+                    <h2>Create P2P Order</h2>
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Exchange tokens directly with other users.</p>
+                    
+                    <div class="form-group">
+                        <label>Operation Type</label>
+                        <select id="ob-type">
+                            <option value="0">Offer USDm, want USDv</option>
+                            <option value="1">Offer USDv, want USDm</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Amount Offered</label>
+                        <input type="number" id="ob-offered" placeholder="e.g. 100" min="0.01" step="0.01">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Amount Wanted</label>
+                        <input type="number" id="ob-wanted" placeholder="e.g. 103" min="0.01" step="0.01">
+                    </div>
+
+                    <button class="btn btn-primary full-width" onclick="createOrder()" id="btnCreateOrder">Publish order</button>
+                    <div id="create-loader" class="loader-inline">Processing...</div>
+                    <div id="create-error" style="color: var(--red); font-size: 13px; margin-top: 10px; text-align: center;"></div>
+                </section>
+
+                <!-- Section 2: Order List -->
+                <section class="card">
+                    <h2>Open Orders</h2>
+                    <div id="orders-container" style="margin-top: 15px;">
+                        <div class="empty-orders">Loading orders...</div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals (Hidden by default) -->
+    <div class="overlay" id="overlay" onclick="closeModals()"></div>
+
+    <!-- Wallet Selection Modal -->
+    <div class="modal" id="walletSelectionModal">
+        <button class="close-btn" onclick="closeModals()">&times;</button>
+        <h2>Connect Wallet</h2>
+        <p class="modal-subtitle" id="walletModalSubtitle">Select an installed wallet to connect.</p>
+        <div class="wallet-list" id="walletList"></div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.11.1/ethers.umd.min.js"></script>
+    <script src="contracts.js?v=custom"></script>
+    <script src="app.js?v=custom"></script>
+    
+    <script>
+        const BRIDGE_URL = "http://localhost:3001";
+        
+        const ERC20_ABI = [
+          "function approve(address spender, uint256 amount) returns (bool)",
+          "function allowance(address owner, address spender) view returns (uint256)",
+          "function balanceOf(address account) view returns (uint256)"
+        ];
+
+        const ORDER_BOOK_ABI_FULL = [
+          "function createOrder(uint8 orderType, uint256 amountOffered, uint256 amountWanted) returns (uint256)",
+          "function fillOrder(uint256 orderId)",
+          "function cancelOrder(uint256 orderId)",
+          "function getOpenOrders() view returns (tuple(uint256 id, address creator, uint8 orderType, uint256 amountOffered, uint256 amountWanted, uint8 status, uint256 createdAt)[])"
+        ];
+        
+        function formatAddress(addr) { return addr ? addr.substring(0,6) + "..." + addr.substring(addr.length-4) : ""; }
+        
+        function timeAgo(ms) {
+            const seconds = Math.floor((Date.now() - ms) / 1000);
+            if(seconds < 60) return "just now";
+            if(seconds < 3600) return `${Math.floor(seconds/60)} min ago`;
+            if(seconds < 86400) return `${Math.floor(seconds/3600)} hours ago`;
+            return `${Math.floor(seconds/86400)} days ago`;
+        }
+
+        async function loadOrders() {
+            const container = document.getElementById("orders-container");
+            try {
+                const res = await fetch(`${BRIDGE_URL}/api/orderbook`);
+                const orders = await res.json();
+                
+                if(!orders || orders.length === 0) {
+                    container.innerHTML = '<div class="empty-orders">No open orders.<br>Be the first to publish one!</div>';
+                    return;
+                }
+                
+                container.innerHTML = "";
+                
+                // Tratar de recuperar wallet para pintar correctamente los botones
+                let userAddr = window.globalState ? window.globalState.walletAddress : null;
+                if (!userAddr && window.ethereum) {
+                    try {
+                        const accs = await window.ethereum.request({ method: 'eth_accounts' });
+                        if(accs && accs.length > 0) userAddr = accs[0];
+                    } catch(e){}
+                }
+                
+                orders.forEach(o => {
+                    const isCreator = userAddr && o.creator.toLowerCase() === userAddr.toLowerCase();
+                    const offStr = ethers.formatEther(o.amountOffered);
+                    const wanStr = ethers.formatEther(o.amountWanted);
+                    const rate = (Number(wanStr) / Number(offStr)).toFixed(4);
+                    
+                    let typeBadge, offLabel, wanLabel;
+                    if(o.orderType === 0) {
+                        typeBadge = '<span class="order-type-badge badge-sell">Sell USDm for USDv</span>';
+                        offLabel = `${offStr} USDm`;
+                        wanLabel = `${wanStr} USDv`;
+                    } else {
+                        typeBadge = '<span class="order-type-badge badge-buy">Sell USDv for USDm</span>';
+                        offLabel = `${offStr} USDv`;
+                        wanLabel = `${wanStr} USDm`;
+                    }
+                    
+                    const timeStr = timeAgo(Number(o.createdAt) * 1000);
+                    
+                    let buttons = '';
+                    if(isCreator) {
+                        buttons = `<button class="btn btn-primary" style="background: #ff6b6b !important; border-color: #ff6b6b !important; color: #ffffff !important;" onclick="cancelOrder(${o.id})">Cancel Order</button>`;
+                    } else {
+                        buttons = `<button class="btn btn-primary" onclick="fillOrder(${o.id}, ${o.orderType}, '${o.amountWanted}')">Accept Order</button>`;
+                    }
+                    
+                    const card = document.createElement('div');
+                    card.className = "order-card";
+                    card.innerHTML = `
+                        <div class="order-header">
+                            ${typeBadge}
+                            <span style="font-size:12px;color:var(--text-muted);">${timeStr}</span>
+                        </div>
+                        <div class="order-details">
+                            <div><strong>Offers:</strong> ${offLabel}</div>
+                            <div><strong>Asks:</strong> ${wanLabel}</div>
+                        </div>
+                        <div class="order-details" style="color:var(--text-muted); font-size:12px;">
+                            <span>Rate: ${rate}</span>
+                            <span>Creator: ${formatAddress(o.creator)}</span>
+                        </div>
+                        <div id="ob-action-msg-${o.id}" style="color:var(--primary); font-size:12px; text-align:right;"></div>
+                        <div class="order-actions">
+                            ${buttons}
+                        </div>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch(e) {
+                container.innerHTML = `<div class="empty-orders" style="color:var(--red)">Error loading orders: check the Backend</div>`;
+            }
+        }
+        
+        async function getContractsAndSigner() {
+            let userAddr = window.globalState ? window.globalState.walletAddress : null;
+            
+            // Si la app.js no llegó a hidratar el estado o se perdió, forzamos conexión
+            if (!userAddr && window.ethereum) {
+                try {
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    if (accounts && accounts.length > 0) {
+                        userAddr = accounts[0];
+                        if (window.globalState) {
+                            window.globalState.walletAddress = userAddr;
+                            window.globalState.walletConnected = true;
+                        }
+                        if (typeof window.updateWalletUI === 'function') window.updateWalletUI();
+                    }
+                } catch(e) { console.error("Auto-connect failed:", e); }
+            }
+            
+            if(!userAddr) throw new Error("You must connect your wallet first");
+            if(!window.ethereum) throw new Error("MetaMask not detected");
+            
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+            
+            const bookAddr = CONTRACT_ADDRESSES.OrderBook;
+            if(!bookAddr || bookAddr === '') throw new Error("OrderBook not configured in contracts.js");
+            
+            return { provider, signer, bookAddr, userAddr };
+        }
+
+        async function createOrder() {
+            const btn = document.getElementById("btnCreateOrder");
+            const loader = document.getElementById("create-loader");
+            const errBox = document.getElementById("create-error");
+            
+            const orderType = Number(document.getElementById("ob-type").value);
+            const offVal = document.getElementById("ob-offered").value;
+            const wanVal = document.getElementById("ob-wanted").value;
+            
+            errBox.textContent = "";
+            
+            if(!offVal || Number(offVal) <= 0 || !wanVal || Number(wanVal) <= 0) {
+                errBox.textContent = "Enter valid amounts greater than 0.";
+                return;
+            }
+            
+            try {
+                const { signer, bookAddr, userAddr } = await getContractsAndSigner();
+                btn.disabled = true;
+                
+                const offWei = ethers.parseEther(offVal.toString());
+                const wanWei = ethers.parseEther(wanVal.toString());
+                
+                // Which token is offered?
+                const tokenAddr = orderType === 0 ? CONTRACT_ADDRESSES.USDm : CONTRACT_ADDRESSES.USDv;
+                const tokenContract = new ethers.Contract(tokenAddr, ERC20_ABI, signer);
+                
+                // Check allowance
+                const allowance = await tokenContract.allowance(userAddr, bookAddr);
+                if(allowance < offWei) {
+                    loader.style.display = "block";
+                    loader.textContent = "Sign the approve in MetaMask...";
+                    const txApp = await tokenContract.approve(bookAddr, offWei);
+                    loader.textContent = "Waiting for approve confirmation...";
+                    await txApp.wait();
+                }
+                
+                loader.style.display = "block";
+                loader.textContent = "Sign the creation in MetaMask...";
+                
+                const bookContract = new ethers.Contract(bookAddr, ORDER_BOOK_ABI_FULL, signer);
+                const tx = await bookContract.createOrder(orderType, offWei, wanWei);
+                
+                loader.textContent = "Processing creation on Fuji...";
+                await tx.wait();
+                
+                document.getElementById("ob-offered").value = "";
+                document.getElementById("ob-wanted").value = "";
+                if(window.showToast) window.showToast("Order successfully created and published!");
+                
+                loadOrders(); // recargar
+            } catch(e) {
+                errBox.textContent = e.message;
+            } finally {
+                btn.disabled = false;
+                loader.style.display = "none";
+            }
+        }
+        
+        async function fillOrder(orderId, orderType, amountWantedWeiStr) {
+            const msgBox = document.getElementById(`ob-action-msg-${orderId}`);
+            try {
+                const { signer, bookAddr, userAddr } = await getContractsAndSigner();
+                
+                const wanWei = BigInt(amountWantedWeiStr);
+                // The taker pays what the creator wants.
+                // If creator offered USDm for USDv (type 0), taker pays USDv.
+                // If creator offered USDv for USDm (type 1), taker pays USDm.
+                const tokenAddr = orderType === 0 ? CONTRACT_ADDRESSES.USDv : CONTRACT_ADDRESSES.USDm;
+                const tokenContract = new ethers.Contract(tokenAddr, ERC20_ABI, signer);
+                
+                msgBox.textContent = "Verifying balances and allowance...";
+                const allowance = await tokenContract.allowance(userAddr, bookAddr);
+                if(allowance < wanWei) {
+                    msgBox.textContent = "Sign the approve in MetaMask...";
+                    const txApp = await tokenContract.approve(bookAddr, wanWei);
+                    msgBox.textContent = "Waiting for approve confirmation...";
+                    await txApp.wait();
+                }
+                
+                msgBox.textContent = "Sign the order acceptance...";
+                const bookContract = new ethers.Contract(bookAddr, ORDER_BOOK_ABI_FULL, signer);
+                const tx = await bookContract.fillOrder(orderId);
+                
+                msgBox.textContent = "Executing on-chain swap...";
+                const receipt = await tx.wait();
+                
+                if(window.showToast) window.showToast("Swap completed successfully!");
+                msgBox.innerHTML = `<a href="https://testnet.snowtrace.io/tx/${receipt.hash}" target="_blank" style="color:var(--primary)">View Transaction</a>`;
+                
+                setTimeout(loadOrders, 2000);
+            } catch(e) {
+                msgBox.textContent = "Error: " + e.message;
+                msgBox.style.color = "var(--red)";
+            }
+        }
+
+        async function cancelOrder(orderId) {
+            const msgBox = document.getElementById(`ob-action-msg-${orderId}`);
+            try {
+                const { signer, bookAddr } = await getContractsAndSigner();
+                msgBox.textContent = "Sign the cancellation in MetaMask...";
+                
+                const bookContract = new ethers.Contract(bookAddr, ORDER_BOOK_ABI_FULL, signer);
+                const tx = await bookContract.cancelOrder(orderId);
+                
+                msgBox.textContent = "Processing cancellation...";
+                await tx.wait();
+                
+                if(window.showToast) window.showToast("Order cancelled. Your tokens were returned.");
+                loadOrders();
+            } catch(e) {
+                msgBox.textContent = "Error: " + e.message;
+                msgBox.style.color = "var(--red)";
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            setTimeout(loadOrders, 500);
+            setInterval(loadOrders, 10000); // Polling update
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Vinchi Smart Promotions — Clover POS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/ethers@6.13.2/dist/ethers.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --clover:#00a651;--clover-dk:#008c43;--clover-lt:#e8f7ef;--clover-logo:#004400;
+  --bg:#f0f0f0;--device-bg:#ffffff;--screen-bg:#f7f7f7;
+  --numpad-btn:#efefef;--numpad-hover:#e2e2e2;
+  --text:#1a1a1a;--text-muted:#8a8a8a;--text-light:#b0b0b0;
+  --border:#e0e0e0;--green:#00a651;--red:#e53935;
+  --panel-bg:#ffffff;--panel-border:#e8e8e8;
+}
+html,body{min-height:100vh;background:var(--bg);font-family:'Inter',sans-serif;color:var(--text)}
+.page{display:grid;grid-template-columns:360px 1fr;min-height:100vh;position:relative;}
+@media(max-width:860px){.page{grid-template-columns:1fr}}
+.device-col{background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:28px 20px 20px;gap:12px}
+.device{width:275px;background:var(--device-bg);border-radius:24px;box-shadow:0 2px 4px rgba(0,0,0,0.06),0 8px 24px rgba(0,0,0,0.12),0 0 0 1px rgba(0,0,0,0.04);overflow:hidden}
+.device-header{background:var(--device-bg);padding:14px 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.clover-logo{display:flex;align-items:center;gap:6px}
+.clover-wordmark{font-size:17px;font-weight:700;color:var(--clover-logo);letter-spacing:-0.3px}
+.device-screen{background:var(--screen-bg);display:flex;flex-direction:column}
+.step{display:none;flex-direction:column;flex:1}.step.active{display:flex}
+.ventas-bar{background:var(--device-bg);padding:10px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--border)}
+.ventas-card{width:28px;height:18px;background:var(--clover);border-radius:3px;position:relative;flex-shrink:0}
+.ventas-card::after{content:'';position:absolute;left:0;right:0;top:6px;height:3px;background:rgba(255,255,255,0.4)}
+.ventas-label{font-size:13px;font-weight:500}
+.amount-section{background:var(--device-bg);padding:18px 16px 14px;text-align:center;border-bottom:1px solid var(--border)}
+.amount-value{font-size:40px;font-weight:300;color:var(--text);letter-spacing:-1px;font-variant-numeric:tabular-nums}
+.amount-value.filled{font-weight:400}
+.cat-section{padding:10px 10px 6px}
+.cat-label{font-size:10px;color:var(--text-muted);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:7px;padding:0 2px}
+.cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.cat-btn{background:var(--device-bg);border:1px solid var(--border);border-radius:8px;padding:7px 4px;cursor:pointer;text-align:center;transition:all 0.12s;font-family:'Inter',sans-serif}
+.cat-btn:hover{background:var(--clover-lt);border-color:var(--clover)}
+.cat-btn.sel{background:var(--clover);border-color:var(--clover)}
+.cat-btn.sel .cat-name{color:#fff}
+.cat-emoji{font-size:14px;display:block;margin-bottom:2px}
+.cat-name{font-size:9px;color:var(--text-muted);display:block;line-height:1.2}
+.numpad{padding:8px 10px 6px;display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.num-btn{background:var(--numpad-btn);border:none;border-radius:10px;padding:13px 8px;font-size:20px;font-weight:400;color:var(--text);cursor:pointer;transition:background 0.1s;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center}
+.num-btn:hover{background:var(--numpad-hover)}.num-btn:active{transform:scale(0.94)}
+.num-btn.dbl{grid-column:span 2}.num-btn.del{font-size:15px;color:var(--text-muted)}
+.num-btn.del:hover{background:#fde8e8;color:var(--red)}
+.action-bar{padding:9px 10px 12px;display:grid;grid-template-columns:1fr 1fr auto;gap:7px;background:var(--device-bg);border-top:1px solid var(--border)}
+.btn-ol{padding:11px 8px;border:1.5px solid var(--border);border-radius:10px;background:transparent;font-size:12px;font-weight:500;color:var(--text);cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.12s}
+.btn-ol:hover{border-color:var(--clover);color:var(--clover)}
+.btn-gr{padding:11px 8px;border:none;border-radius:10px;background:var(--clover);font-size:12px;font-weight:600;color:#fff;cursor:pointer;font-family:'Inter',sans-serif;transition:background 0.12s}
+.btn-gr:hover{background:var(--clover-dk)}.btn-gr:disabled{background:#ccc;cursor:not-allowed}
+.btn-dots{width:36px;border:1.5px solid var(--border);border-radius:10px;background:transparent;cursor:pointer;font-size:16px;color:var(--text-muted);display:flex;align-items:center;justify-content:center}
+.analyzing-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:28px 20px;background:var(--device-bg)}
+.spinner{width:42px;height:42px;border-radius:50%;border:3px solid var(--clover-lt);border-top-color:var(--clover);animation:spin 0.8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.an-title{font-size:13px;font-weight:500;text-align:center}
+.an-steps{width:100%;display:flex;flex-direction:column;gap:7px}
+.a-step{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--text-muted);padding:6px 10px;border-radius:8px;transition:all 0.3s}
+.a-step.done{color:var(--clover);background:var(--clover-lt)}.a-step.cur{color:var(--text);background:var(--numpad-btn)}
+.a-dot{width:18px;height:18px;border-radius:50%;background:var(--border);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;flex-shrink:0;color:var(--text-muted)}
+.a-step.done .a-dot{background:var(--clover);color:#fff}.a-step.cur .a-dot{background:var(--text);color:#fff}
+.result-screen{flex:1;display:flex;flex-direction:column;background:var(--device-bg)}
+.promo-banner{margin:12px 12px 0;background:var(--clover-lt);border:1px solid #a8dfc1;border-radius:12px;padding:11px 12px;display:flex;align-items:flex-start;gap:9px}
+.promo-check{width:24px;height:24px;border-radius:50%;background:var(--clover);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-top:1px}
+.promo-bank{font-size:12px;font-weight:700;color:#00613a}
+.promo-desc{font-size:10px;color:#1a7a4a;margin-top:2px;line-height:1.4}
+.no-promo{margin:12px 12px 0;background:var(--screen-bg);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center}
+.breakdown{margin:8px 12px 0;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.brow{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;font-size:12px;border-bottom:1px solid var(--border)}
+.brow:last-child{border-bottom:none}.brow.total{background:var(--clover-lt)}
+.bl{color:var(--text-muted)}.bv{font-weight:600;font-variant-numeric:tabular-nums}
+.bv.g{color:var(--clover)}.bv.big{font-size:16px}
+.result-footer{margin-top:auto;padding:10px 12px 12px;display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--border)}
+.btn-confirm{padding:13px;border:none;border-radius:10px;background:var(--clover);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif}
+.btn-confirm:hover{background:var(--clover-dk)}
+.btn-cancel{padding:9px;border:1.5px solid var(--border);border-radius:10px;background:transparent;color:var(--text-muted);font-size:12px;cursor:pointer;font-family:'Inter',sans-serif}
+.confirmed-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px 16px;background:var(--device-bg)}
+.conf-icon{width:58px;height:58px;border-radius:50%;background:var(--clover-lt);border:2px solid var(--clover);display:flex;align-items:center;justify-content:center;font-size:24px;animation:pop 0.4s ease}
+@keyframes pop{0%{transform:scale(0.5)}70%{transform:scale(1.08)}100%{transform:scale(1)}}
+.conf-label{font-size:12px;color:var(--text-muted);font-weight:500}
+.conf-amount{font-size:36px;font-weight:300;letter-spacing:-1px;font-variant-numeric:tabular-nums}
+.receipt{width:100%;background:var(--screen-bg);border-radius:10px;border:1px solid var(--border);padding:9px 11px}
+.rrow{display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px dashed var(--border)}
+.rrow:last-child{border-bottom:none}
+.rl{color:var(--text-muted)}.rv{font-weight:500}.rv.g{color:var(--clover)}
+.fiserv-line{font-size:9px;color:var(--text-light);text-align:center}
+.fiserv-line strong{color:#ff6600}
+.btn-nueva{width:100%;padding:12px;border:none;border-radius:10px;background:var(--clover);color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif}
+.right-col{background:#f7f7f7;border-left:1px solid var(--panel-border);padding:24px;display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.topbar-title{font-size:17px;font-weight:700}.topbar-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+.status-pill{display:flex;align-items:center;gap:6px;background:var(--clover-lt);border:1px solid #a8dfc1;border-radius:20px;padding:5px 12px;font-size:11px;font-weight:500;color:var(--clover)}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--clover);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.status-pill.off{background:#fff8e1;border-color:#ffe082;color:#f59e0b}
+.status-pill.off .sdot{background:#f59e0b;animation:none}
+.panel{background:var(--panel-bg);border:1px solid var(--panel-border);border-radius:14px;padding:16px}
+.ptitle{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.stat-box{background:var(--screen-bg);border-radius:10px;padding:12px 13px}
+.stat-val{font-size:21px;font-weight:600;margin-bottom:3px;font-variant-numeric:tabular-nums}
+.stat-label{font-size:11px;color:var(--text-muted)}
+.stat-box.g .stat-val{color:var(--green)}.stat-box.b .stat-val{color:#2563eb}
+.stat-box.a .stat-val{color:#d97706}.stat-box.p .stat-val{color:#7c3aed}
+.bank-list{display:flex;flex-direction:column;gap:6px}
+.bank-row{display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--screen-bg);border-radius:9px;border:1px solid var(--panel-border);transition:border-color 0.15s}
+.bank-row.win{border-color:#a8dfc1;background:var(--clover-lt)}
+.bank-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.bank-info{flex:1}.bank-name{font-size:12px;font-weight:600}.bank-txs{font-size:10px;color:var(--text-muted);margin-top:1px}
+.bank-saved{font-size:12px;font-weight:600;color:var(--clover);font-variant-numeric:tabular-nums}
+.tx-log{display:flex;flex-direction:column;gap:5px;max-height:200px;overflow-y:auto}
+.tx-item{display:flex;justify-content:space-between;align-items:center;padding:7px 9px;background:var(--screen-bg);border-radius:8px;border-left:3px solid transparent;font-size:11px}
+.tx-item.ok{border-left-color:var(--clover)}.tx-item.none{border-left-color:var(--border)}
+.tx-cat{font-weight:500}.tx-meta{color:var(--text-muted);margin-top:1px;font-size:10px}
+.tx-saved{font-weight:600;color:var(--clover);font-variant-numeric:tabular-nums}
+.how-step{display:flex;gap:10px;align-items:flex-start}
+.how-num{width:21px;height:21px;border-radius:50%;background:var(--clover);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.how-text{font-size:12px;color:var(--text-muted);line-height:1.5}
+.how-text strong{color:var(--text)}
+.day-row{display:flex;align-items:center;gap:7px}
+.day-sel{font-size:11px;padding:4px 8px;border:1px solid var(--border);border-radius:7px;background:var(--device-bg);color:var(--text);font-family:'Inter',sans-serif;cursor:pointer}
+
+/* Close button for iframe */
+.btn-close-iframe {
+  position: absolute;
+  top: 15px; 
+  right: 20px; 
+  background: var(--text); 
+  color: white; 
+  border: none; 
+  border-radius: 8px; 
+  padding: 8px 12px; 
+  cursor: pointer; 
+  z-index: 1000; 
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  transition: all 0.2s;
+}
+.btn-close-iframe:hover {
+  background: var(--red);
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <button class="btn-close-iframe" onclick="if(window.parent && window.parent.VinchiClover){window.parent.VinchiClover.closePOS()}else{alert('Only works inside the integrated project')}">Close POS ✖</button>
+  <!-- LEFT -->
+  <div class="device-col">
+    <div style="width:275px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:11px;color:var(--text-muted)">Clover POS Simulator</span>
+      <div class="day-row">
+        <span style="font-size:11px;color:var(--text-muted)">Day:</span>
+        <select class="day-sel" id="day-selector" onchange="currentDay=parseInt(this.value)">
+          <option value="0">Monday</option><option value="1">Tuesday</option>
+          <option value="2">Wednesday</option><option value="3">Thursday</option>
+          <option value="4">Friday</option><option value="5">Saturday</option><option value="6">Sunday</option>
+        </select>
+        <script>document.getElementById("day-selector").value = (new Date().getDay() + 6) % 7;</script>
+      </div>
+    </div>
+
+    <div class="device">
+      <!-- Header -->
+      <div class="device-header">
+        <div class="clover-logo">
+          <svg width="26" height="26" viewBox="0 0 32 32" fill="none">
+            <circle cx="11" cy="11" r="8" fill="#00a651"/>
+            <circle cx="21" cy="11" r="8" fill="#00a651"/>
+            <circle cx="11" cy="21" r="8" fill="#00a651"/>
+            <circle cx="21" cy="21" r="8" fill="#00a651"/>
+            <rect x="14" y="24" width="4" height="6" rx="2" fill="#00a651"/>
+          </svg>
+          <span class="clover-wordmark">clover</span>
+        </div>
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" opacity="0.35">
+          <circle cx="14" cy="14" r="5" stroke="#333" stroke-width="1.5" fill="none"/>
+          <path d="M8 14a6 6 0 0 1 6-6" stroke="#333" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+          <path d="M5 14a9 9 0 0 1 9-9" stroke="#333" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+          <path d="M20 14a6 6 0 0 1-6 6" stroke="#333" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+          <path d="M23 14a9 9 0 0 1-9 9" stroke="#333" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+          <circle cx="14" cy="14" r="2" fill="#333"/>
+        </svg>
+      </div>
+
+      <div class="device-screen">
+
+        <!-- STEP 0 -->
+        <div class="step active" id="step-0">
+          <div class="ventas-bar">
+            <div class="ventas-card"></div>
+            <span class="ventas-label">Select Store</span>
+          </div>
+          <div style="padding: 16px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px;" id="store-list-container">
+            <div style="text-align: center; color: var(--text-muted); font-size: 13px; margin-top: 20px;">Loading stores...</div>
+          </div>
+          <div class="action-bar">
+            <button class="btn-gr" style="grid-column: 1 / span 3;" id="btn-continue-step1" onclick="goToStep1()" disabled>Continue</button>
+          </div>
+        </div>
+
+        <!-- STEP 1 -->
+        <div class="step" id="step-1">
+          <div class="ventas-bar">
+            <div class="ventas-card"></div>
+            <span class="ventas-label">Sales</span>
+          </div>
+          <div class="amount-section">
+            <div class="amount-value" id="amount-display">$ 0</div>
+          </div>
+          <div class="cat-section">
+            <div class="cat-label">Business category</div>
+            <div class="cat-grid">
+              <button class="cat-btn" onclick="selCat('supermercado',this)"><span class="cat-emoji">🛒</span><span class="cat-name">Super</span></button>
+              <button class="cat-btn" onclick="selCat('farmacia',this)"><span class="cat-emoji">💊</span><span class="cat-name">Pharmacy</span></button>
+              <button class="cat-btn" onclick="selCat('electronica',this)"><span class="cat-emoji">💻</span><span class="cat-name">Electronics</span></button>
+              <button class="cat-btn" onclick="selCat('restaurante',this)"><span class="cat-emoji">🍽️</span><span class="cat-name">Restaurant</span></button>
+              <button class="cat-btn" onclick="selCat('delivery',this)"><span class="cat-emoji">📦</span><span class="cat-name">Delivery</span></button>
+              <button class="cat-btn" onclick="selCat('indumentaria',this)"><span class="cat-emoji">👕</span><span class="cat-name">Clothing</span></button>
+              <button class="cat-btn" onclick="selCat('entretenimiento',this)"><span class="cat-emoji">🎬</span><span class="cat-name">Cinema</span></button>
+              <button class="cat-btn" onclick="selCat('viajes',this)"><span class="cat-emoji">✈️</span><span class="cat-name">Travel</span></button>
+            </div>
+          </div>
+          <div class="numpad">
+            <button class="num-btn" onclick="np('1')">1</button>
+            <button class="num-btn" onclick="np('2')">2</button>
+            <button class="num-btn" onclick="np('3')">3</button>
+            <button class="num-btn" onclick="np('4')">4</button>
+            <button class="num-btn" onclick="np('5')">5</button>
+            <button class="num-btn" onclick="np('6')">6</button>
+            <button class="num-btn" onclick="np('7')">7</button>
+            <button class="num-btn" onclick="np('8')">8</button>
+            <button class="num-btn" onclick="np('9')">9</button>
+            <button class="num-btn dbl" onclick="np('00')">00</button>
+            <button class="num-btn" onclick="np('0')">0</button>
+            <button class="num-btn del" onclick="nd()">&#x2715;</button>
+          </div>
+          <div class="action-bar">
+            <button class="btn-ol">QR PosNet</button>
+            <button class="btn-gr" id="btn-tarjeta" onclick="analyze()" disabled>Card</button>
+            <button class="btn-dots">&#x22EE;</button>
+          </div>
+        </div>
+
+        <!-- STEP 2 -->
+        <div class="step" id="step-2">
+          <div class="analyzing-screen">
+            <div class="spinner"></div>
+            <div class="an-title">Searching for the best promotion...</div>
+            <div class="an-steps">
+              <div class="a-step" id="as1"><div class="a-dot">1</div>Querying PromotionRegistry</div>
+              <div class="a-step" id="as2"><div class="a-dot">2</div>AgentRouter calculating score</div>
+              <div class="a-step" id="as3"><div class="a-dot">3</div>Selecting optimal bank</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3 -->
+        <div class="step" id="step-3">
+          <div class="result-screen">
+            <div id="result-content"></div>
+            <div class="result-footer" id="result-footer">
+              <button class="btn-confirm" onclick="confirm_()">Confirm payment</button>
+              <button class="btn-cancel" onclick="reset_()">Cancel</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 4 -->
+        <div class="step" id="step-4">
+          <div class="confirmed-screen">
+            <div class="conf-icon">&#x2713;</div>
+            <div class="conf-label">Payment approved on Fuji</div>
+            <div class="conf-amount" id="conf-amount">$ 0</div>
+            <div class="receipt" id="receipt-content"></div>
+            <div class="fiserv-line">Processed via <strong>Fiserv</strong> &middot; Vinchi Smart Promotions</div>
+            <button class="btn-nueva" onclick="reset_()">New sale</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-col">
+    <div class="topbar">
+      <div>
+        <div class="topbar-title">Vinchi Smart Promotions</div>
+        <div class="topbar-sub">Clover App Market &middot; powered by Fiserv</div>
+      </div>
+      <div class="status-pill" id="status-pill">
+        <div class="sdot"></div>
+        <span id="status-text">Connecting...</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">Daily summary</div>
+      <div class="stat-grid">
+        <div class="stat-box g"><div class="stat-val" id="st-saved">$ 0</div><div class="stat-label">Saved by customers</div></div>
+        <div class="stat-box b"><div class="stat-val" id="st-txs">0</div><div class="stat-label">Processed payments</div></div>
+        <div class="stat-box a"><div class="stat-val" id="st-avg">0%</div><div class="stat-label">Average discount</div></div>
+        <div class="stat-box p"><div class="stat-val" id="st-lat">&#x2014;</div><div class="stat-label">Router latency</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">Available banks on Fuji</div>
+      <div class="bank-list" id="bank-list">
+        <div class="bank-row"><div class="bank-dot" style="background:#00a651"></div><div class="bank-info"><div class="bank-name">BancoRío DeFi</div><div class="bank-txs">0 transactions</div></div><div class="bank-saved">$ 0</div></div>
+        <div class="bank-row"><div class="bank-dot" style="background:#2563eb"></div><div class="bank-info"><div class="bank-name">BancoProvincia DeFi</div><div class="bank-txs">0 transactions</div></div><div class="bank-saved">$ 0</div></div>
+        <div class="bank-row"><div class="bank-dot" style="background:#7c3aed"></div><div class="bank-info"><div class="bank-name">VisaDeFi Network</div><div class="bank-txs">0 transactions</div></div><div class="bank-saved">$ 0</div></div>
+        <div class="bank-row"><div class="bank-dot" style="background:#d97706"></div><div class="bank-info"><div class="bank-name">MaestroNet</div><div class="bank-txs">0 transactions</div></div><div class="bank-saved">$ 0</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">Últimas transactions</div>
+      <div class="tx-log" id="tx-log">
+        <div style="text-align:center;color:var(--text-muted);font-size:12px;padding:12px">Las transactions aparecerán acá</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle">How Web3 Integration works</div>
+      <div style="display:flex;flex-direction:column;gap:11px">
+        <div class="how-step"><div class="how-num">1</div><div class="how-text">The cashier enters the amount on the terminal and selects the category.</div></div>
+        <div class="how-step"><div class="how-num">2</div><div class="how-text">The app calls the Node backend which routes with <code style="font-size:10px;background:#f0f0f0;padding:1px 4px;border-radius:3px">AgentRouter.findBestPromotion()</code> on Fuji.</div></div>
+        <div class="how-step"><div class="how-num">3</div><div class="how-text">Once approved, <code style="font-size:10px;background:#f0f0f0;padding:1px 4px;border-radius:3px">PaymentSettlement.settlePayment()</code> is executed transferring your <strong>USDv</strong> to the merchant's contract.</div></div>
+        <div class="how-step"><div class="how-num">4</div><div class="how-text">The discount is applied, an event is emitted, and it updates your Nacho Dapp balance in real time.</div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+var amtStr="",selCat_="",currentDay=(new Date().getDay() + 6) % 7,lastR=null,totalSaved=0,totalTxs=0,discs=[];
+var bstats={"BancoRio DeFi":{c:"#00a651",n:0,s:0},"BancoProvincia DeFi":{c:"#2563eb",n:0,s:0},"VisaDeFi Network":{c:"#7c3aed",n:0,s:0},"MaestroNet":{c:"#d97706",n:0,s:0}};
+var txHist=[];
+
+var bridgeHost = (window.parent && window.parent.VINCHI_CONFIG && window.parent.VINCHI_CONFIG.bridgeUrl) ? window.parent.VINCHI_CONFIG.bridgeUrl : "http://localhost:3001";
+
+var selectedStoreId = null;
+var selectedMerchantAddress = null;
+var selectedStoreName = null;
+
+async function loadStores() {
+  try {
+    const res = await fetch(bridgeHost + "/api/stores");
+    const stores = await res.json();
+    const container = document.getElementById("store-list-container");
+    
+    if(!stores || stores.length === 0) {
+      container.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; margin-top: 20px;">No stores registered. The merchant must create one first.</div>';
+      return;
+    }
+    
+    container.innerHTML = "";
+    stores.forEach(store => {
+      const btn = document.createElement("button");
+      btn.className = "btn-ol";
+      btn.style.display = "flex";
+      btn.style.alignItems = "center";
+      btn.style.columnGap = "10px";
+      btn.style.width = "100%";
+      btn.style.textAlign = "left";
+      
+      const dot = document.createElement("div");
+      dot.style.width = "12px";
+      dot.style.height = "12px";
+      dot.style.borderRadius = "50%";
+      dot.style.backgroundColor = store.color;
+      dot.style.flexShrink = "0";
+      
+      const text = document.createElement("span");
+      text.textContent = store.name;
+      text.style.flex = "1";
+      
+      btn.appendChild(dot);
+      btn.appendChild(text);
+      
+      btn.onclick = function() {
+        Array.from(container.children).forEach(c => {
+          c.style.borderColor = "var(--border)";
+          c.style.backgroundColor = "transparent";
+        });
+        btn.style.borderColor = "var(--clover)";
+        btn.style.backgroundColor = "var(--clover-lt)";
+        
+        selectedStoreId = store.storeId;
+        selectedMerchantAddress = store.recipient;
+        selectedStoreName = store.name;
+        
+        document.getElementById("btn-continue-step1").disabled = false;
+      };
+      
+      container.appendChild(btn);
+    });
+  } catch(e) {
+    document.getElementById("store-list-container").innerHTML = '<div style="text-align: center; color: var(--red); font-size: 13px;">Error loading stores</div>';
+  }
+}
+
+function goToStep1() {
+  showStep(1);
+}
+
+document.addEventListener("DOMContentLoaded", loadStores);
+
+function np(d){if(amtStr.length>=7)return;amtStr=amtStr==="0"?d:amtStr+d;updDisp()}
+function nd(){amtStr=amtStr.slice(0,-1);updDisp()}
+function updDisp(){
+  var n=parseInt(amtStr||"0");
+  var el=document.getElementById("amount-display");
+  el.textContent="$ "+n.toLocaleString("es-AR");
+  el.className="amount-value"+(n>0?" filled":"");
+  document.getElementById("btn-tarjeta").disabled=!(n>0&&selCat_);
+}
+function selCat(cat,el){
+  selCat_=cat;
+  document.querySelectorAll(".cat-btn").forEach(function(b){b.classList.remove("sel")});
+  el.classList.add("sel");
+  document.getElementById("btn-tarjeta").disabled=!(parseInt(amtStr||"0")>0&&selCat_);
+}
+function showStep(n){document.querySelectorAll(".step").forEach(function(s){s.classList.remove("active")});document.getElementById("step-"+n).classList.add("active")}
+var sleep=function(ms){return new Promise(function(r){setTimeout(r,ms)})};
+
+async function analyze(){
+  var amt=parseInt(amtStr);
+  showStep(2);
+  var ids=["as1","as2","as3"];
+  for(var i=0;i<ids.length;i++){
+    document.getElementById(ids[i]).className="a-step cur";
+    document.getElementById(ids[i]).querySelector(".a-dot").textContent=i+1;
+    await sleep(420);
+    document.getElementById(ids[i]).className="a-step done";
+    document.getElementById(ids[i]).querySelector(".a-dot").textContent="✓";
+  }
+  var t0=Date.now(),result;
+  try{
+    var resp=await fetch(bridgeHost + "/api/route",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({category:selCat_,amount:amt,dayOfWeek:currentDay,storeId:selectedStoreId})});
+    var data=await resp.json();
+    result=data.data;
+  }catch(e){
+    alert("Error connecting with the Bridge API at " + bridgeHost);
+    reset_();
+    return;
+  }
+  result.latencyMs=Date.now()-t0;
+  lastR=result;
+  document.getElementById("st-lat").textContent=result.latencyMs+"ms";
+  renderResult(result,amt);
+  showStep(3);
+}
+function renderResult(r,amt){
+  var el=document.getElementById("result-content");
+  if(r.savedAmount>0){
+    el.innerHTML='<div class="promo-banner"><div class="promo-check">✓</div><div><div class="promo-bank">'+r.bankName+'</div><div class="promo-desc">'+r.description+'</div></div></div>'
+      +'<div class="breakdown"><div class="brow"><span class="bl">Original amount</span><span class="bv">$ '+amt.toLocaleString("es-AR")+'</span></div>'
+      +'<div class="brow"><span class="bl">Discount ('+r.discountBps/100+'%)</span><span class="bv g">− $ '+r.savedAmount.toLocaleString("es-AR")+'</span></div>'
+      +'<div class="brow total"><span class="bl" style="font-weight:600">Total to charge in USDv</span><span class="bv big">$ '+r.discountedAmount.toLocaleString("es-AR")+'</span></div></div>'
+      +'<div style="margin:7px 12px 0;font-size:10px;color:var(--text-muted)">via <strong>'+r.source+'</strong> &middot; '+r.latencyMs+'ms &middot; score '+r.score+'</div>';
+  }else{
+    el.innerHTML='<div class="no-promo"><div style="font-size:22px;margin-bottom:4px">—</div><div style="font-size:12px;font-weight:500;color:var(--text-muted)">'+r.description+'</div></div>'
+      +'<div class="breakdown"><div class="brow total"><span class="bl" style="font-weight:600">Total to charge in USDv</span><span class="bv big">$ '+amt.toLocaleString("es-AR")+'</span></div></div>';
+  }
+}
+
+function mostrarLoader(msg) {
+  document.getElementById("result-footer").style.display = "none";
+  let loader = document.getElementById("s-loader");
+  if (!loader) {
+    loader = document.createElement("div");
+    loader.id = "s-loader";
+    loader.style.padding = "20px";
+    loader.style.textAlign = "center";
+    loader.style.color = "#8a8a8a";
+    loader.style.fontSize = "13px";
+    document.getElementById("result-content").appendChild(loader);
+  }
+  loader.innerHTML = '<div class="spinner" style="width:25px;height:25px;margin:0 auto 10px;border-width:2px"></div>' + msg;
+}
+
+function mostrarError(msg) {
+  let loader = document.getElementById("s-loader");
+  if (loader) loader.remove();
+  let errEl = document.getElementById("s-error");
+  if (!errEl) {
+    errEl = document.createElement("div");
+    errEl.id = "s-error";
+    errEl.style.padding = "10px";
+    errEl.style.marginTop = "10px";
+    errEl.style.borderRadius = "8px";
+    errEl.style.backgroundColor = "#fee2e2";
+    errEl.style.color = "var(--red)";
+    errEl.style.fontSize = "12px";
+    errEl.style.textAlign = "center";
+    document.getElementById("result-content").appendChild(errEl);
+  }
+  errEl.textContent = msg;
+  setTimeout(() => errEl.remove(), 4000);
+  document.getElementById("result-footer").style.display = "flex";
+}
+
+function mostrarExito(txHash, r, amt) {
+    let loader = document.getElementById("s-loader");
+    if(loader) loader.remove();
+    let errEl = document.getElementById("s-error");
+    if (errEl) errEl.remove();
+    
+    totalTxs++;totalSaved+=r.savedAmount;
+    if(r.savedAmount>0)discs.push(r.discountBps/100);
+    if(r.bankName&&bstats[r.bankName]){bstats[r.bankName].n++;bstats[r.bankName].s+=r.savedAmount}
+    txHist.unshift({cat:selCat_,amt:amt,saved:r.savedAmount,bank:r.bankName,time:new Date().toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"})});
+    
+    document.getElementById("conf-amount").textContent="$ "+r.discountedAmount.toLocaleString("es-AR");
+    document.getElementById("receipt-content").innerHTML=
+      '<div class="rrow"><span class="rl">Subtotal</span><span class="rv">$ '+amt.toLocaleString("es-AR")+'</span></div>'
+      +(r.savedAmount>0?'<div class="rrow"><span class="rl">Descuento '+r.discountBps/100+'%</span><span class="rv g">− $ '+r.savedAmount.toLocaleString("es-AR")+'</span></div>':"")
+      +'<div class="rrow"><span class="rl" style="font-weight:600">Total in USDv</span><span class="rv" style="font-weight:700">$ '+r.discountedAmount.toLocaleString("es-AR")+'</span></div>'
+      +(r.bankName?'<div class="rrow"><span class="rl">Promotion</span><span class="rv g">'+r.bankName+'</span></div>':"")
+      +'<div class="rrow" style="flex-direction:column; gap:4px; margin-top:8px; border-top: 1px solid #ddd; padding-top:6px;"><span class="rl">Fuji C-Chain Hash:</span><a href="https://testnet.snowtrace.io/txn/'+txHash+'" target="_blank" style="font-size:10px;color:var(--clover);text-decoration:none;word-break:break-all;">'+(txHash||"N/A")+'</a></div>';
+    
+    showStep(4);
+    updateDash();
+}
+
+async function confirm_() {
+  var amt = parseInt(amtStr);
+  var r = lastR;
+
+  let payer = (window.parent && window.parent.globalState)
+              ? window.parent.globalState.walletAddress
+              : null;
+
+  if (!payer) {
+    try {
+      const accounts = await window.ethereum.request({
+        method: 'eth_requestAccounts'
+      });
+      payer = accounts[0];
+      if (window.parent && window.parent.globalState) {
+        window.parent.globalState.walletAddress = payer;
+        if(window.parent.updateWalletUI) window.parent.updateWalletUI();
+        if(window.parent.updateDashboard) window.parent.updateDashboard();
+      }
+    } catch(e) {
+      mostrarError("Connect MetaMask to continue.");
+      return;
+    }
+  }
+
+  if (!selectedStoreId || !selectedMerchantAddress) {
+    mostrarError("Select a store first.");
+    return;
+  }
+
+  mostrarLoader("Waiting for approval in MetaMask...");
+
+  try {
+    const USDV_ADDRESS = window.parent.VINCHI_CONTRACTS
+                       ? window.parent.VINCHI_CONTRACTS.usdv
+                       : null;
+    const SETTLEMENT_ADDRESS = window.parent.VINCHI_CONTRACTS
+                              ? window.parent.VINCHI_CONTRACTS.paymentSettlement
+                              : null;
+
+    if (!USDV_ADDRESS || !SETTLEMENT_ADDRESS) {
+      mostrarError("Contracts not configured. Check config.js / index.html");
+      return;
+    }
+
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = await provider.getSigner();
+
+    const usdvAbi = [
+      "function approve(address spender, uint256 amount) returns (bool)",
+      "function allowance(address owner, address spender) view returns (uint256)"
+    ];
+    const usdvContract = new ethers.Contract(USDV_ADDRESS, usdvAbi, signer);
+
+    const netAmountWei = ethers.parseEther(r.discountedAmount.toString());
+    const currentAllowance = await usdvContract.allowance(
+      payer, 
+      SETTLEMENT_ADDRESS
+    );
+
+    if (currentAllowance < netAmountWei) {
+      mostrarLoader("Sign the approve in MetaMask...");
+      const approveTx = await usdvContract.approve(
+        SETTLEMENT_ADDRESS, 
+        netAmountWei
+      );
+      mostrarLoader("Esperando confirmación del approve on Fuji...");
+      await approveTx.wait();
+    }
+
+  } catch(e) {
+    mostrarError("Error in approve: " + e.message);
+    return;
+  }
+
+  mostrarLoader("Procesando pago on Fuji...");
+
+  try {
+    const res = await fetch(bridgeHost + "/api/settle", {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        storeId: selectedStoreId,
+        merchantAddress: selectedMerchantAddress,
+        payer: payer,
+        grossAmount: r.originalAmount,
+        netAmount: r.discountedAmount,
+        discountBps: r.discountBps,
+        promoId: r.promoId,
+        bankUsed: r.bankOrNetwork || ethers.ZeroAddress
+      })
+    });
+
+    const json = await res.json();
+
+    if (json.success) {
+      mostrarExito(json.txHash, r, amt);
+
+      if (window.parent && window.parent.dispatchEvent) {
+        window.parent.dispatchEvent(new CustomEvent('vinchi:payment', {
+          detail: {
+            amount: r.originalAmount,
+            discountedAmount: r.discountedAmount,
+            savedAmount: r.savedAmount,
+            bank: r.bankName,
+            txHash: json.txHash
+          }
+        }));
+      }
+    } else {
+      mostrarError("Blockchain error: " + json.error);
+    }
+  } catch(e) {
+    mostrarError("Error connecting with the bridge: " + e.message);
+  }
+}
+
+function reset_(){
+  amtStr="";selCat_="";lastR=null;
+  document.querySelectorAll(".cat-btn").forEach(function(b){b.classList.remove("sel")});
+  document.getElementById("amount-display").textContent="$ 0";
+  document.getElementById("amount-display").className="amount-value";
+  document.getElementById("btn-tarjeta").disabled=true;
+  ["as1","as2","as3"].forEach(function(id,i){document.getElementById(id).className="a-step";document.getElementById(id).querySelector(".a-dot").textContent=i+1});
+  document.getElementById("result-footer").style.display = "flex";
+  let errEl = document.getElementById("s-error");
+  if (errEl) errEl.remove();
+  showStep(1);
+}
+function updateDash(){
+  document.getElementById("st-saved").textContent="$ "+totalSaved.toLocaleString("es-AR");
+  document.getElementById("st-txs").textContent=totalTxs;
+  var avg=discs.length?(discs.reduce(function(a,b){return a+b},0)/discs.length).toFixed(1):0;
+  document.getElementById("st-avg").textContent=avg+"%";
+  var arr=Object.entries(bstats).sort(function(a,b){return b[1].s-a[1].s});
+  var top=arr[0]?arr[0][0]:"";
+  document.getElementById("bank-list").innerHTML=arr.map(function(e){var name=e[0],s=e[1];return'<div class="bank-row'+(name===top&&s.n>0?' win':'')+'"><div class="bank-dot" style="background:'+s.c+'"></div><div class="bank-info"><div class="bank-name">'+name+(name===top&&s.n>0?' ★':'')+'</div><div class="bank-txs">'+s.n+' transaction'+(s.n!==1?'s':'')+'</div></div><div class="bank-saved">$ '+s.s.toLocaleString("es-AR")+'</div></div>'}).join("");
+  if(!txHist.length)return;
+  document.getElementById("tx-log").innerHTML=txHist.slice(0,8).map(function(t){return'<div class="tx-item '+(t.saved>0?'ok':'none')+'"><div><div class="tx-cat">'+t.cat+' · '+t.time+'</div><div class="tx-meta">'+(t.bank||'No promo')+'</div></div><div class="tx-saved">'+(t.saved>0?'−$ '+t.saved.toLocaleString("es-AR"):'$ '+t.amt.toLocaleString("es-AR"))+'</div></div>'}).join("");
+}
+
+fetch(bridgeHost+"/health")
+  .then(function(r){return r.json()})
+  .then(function(d){
+    document.getElementById("status-text").textContent="Bridge API · "+(d.mode==="demo"?"Off-Chain Mode":"Avalanche Fuji");
+    document.getElementById("status-pill").className="status-pill";
+    if(d.mode!=="demo") {
+      document.getElementById("status-text").style.color = "#111";
+      document.getElementById("status-pill").style.backgroundColor = "#d1fae5";
+      document.getElementById("status-pill").style.borderColor = "#10b981";
+    }
+  })
+  .catch(function(){document.getElementById("status-text").textContent="MOCK Mode (No API)";document.getElementById("status-pill").className="status-pill off"});
+  
+// Setup initial stats UI
+updateDash();
+</script>
+</body>
+</html>

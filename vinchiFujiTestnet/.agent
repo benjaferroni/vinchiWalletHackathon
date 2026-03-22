@@ -1,0 +1,46 @@
+# Project Context: Vinchi Megaeth Testnet
+
+## Overview
+This is a DeFi prototype project built for the Megaeth network (or a local testnet). It implements a stablecoin yield protocol where users deposit a base token (`USDm`) and receive a future-yield receipt token (`USDv`). 
+The protocol is built using Solidity and Foundry for the smart contracts, and vanilla HTML/CSS/JS for the frontend.
+
+## Smart Contracts (`src/`)
+- **`USDm.sol`**: The underlying ERC20 base token (simulating a stablecoin).
+- **`USDmY.sol`**: An ERC4626-like yield vault where the USDm is deposited to generate yield.
+- **`USDManager.sol`**: The core orchestrator. Users deposit `USDm` here, the manager puts it into `USDmY`, and mints `USDv` to the user.
+- **`USDv.sol`**: The receipt token. 1 USDv minted represents a future nominal value (Principal + fixed yield, e.g., 3% or 300 bps).
+
+## Frontend (`frontend/`)
+- **`app.js`**: Main application logic, handling wallet connections (MetaMask/EVM wallets), reading balances, and interacting with `USDManager` and token contracts.
+- **`contracts.js`**: ABIs and contract address configurations.
+- **`index.html` & `styles.css`**: The user interface for the dApp.
+- **`faucet.html`**: A faucet page for users to mint testnet USDm.
+
+## Development Environment
+- **Framework**: Foundry (`forge` for building/testing, `anvil` for local node).
+- **Local Testing**: Tests are run using `anvil` locally. Deployments are managed via scripts in `script/`.
+- **Key Commands**:
+  - `forge build`: Compile contracts
+  - `forge test`: Run tests in `test/`
+  - `anvil --fork-url https://carrot.megaeth.com/rpc --host 0.0.0.0 --block-base-fee-per-gas 0 --chain-id 6343`: Start local node forking the MegaETH testnet with correct chain ID. `--chain-id 6343` is REQUIRED — without it Anvil defaults to 31337 and MetaMask transactions fail with "invalid chain id for signer".
+  - `forge script script/DeployUSDProtocol.s.sol --rpc-url http://localhost:8545 --broadcast`: Deploy contracts to local node.
+  - `cast send <TO> --value <AMOUNT> --private-key <PK> --rpc-url http://localhost:8545 --gas-price 0`: Send transactions with zero gas.
+  - Frontend server: `python -m http.server 8000` from `frontend/` folder.
+
+## ⚠️ Contract Addresses on Fork
+- When using `--fork-url`, Anvil forks the real MegaETH testnet state. The deployer account (`0xf39Fd6...`) may already have a non-zero nonce on that chain, making contract addresses **unpredictable** (unlike a clean Anvil node where nonces always start at 0).
+- **After every deploy on a fork, always check the broadcast output** (`broadcast/DeployUSDProtocol.s.sol/31337/run-latest.json`) and update `frontend/contracts.js` with the new addresses if they changed.
+- The four addresses to update are: `USDm`, `USDmY`, `USDManager`, `USDv`.
+
+## Recent Context & History
+- The UI properly handles wallet account switching (`accountsChanged` events).
+- Fixed frontend bugs related to accurate projected yield calculations and balance refreshes after a deposit.
+- The project is configured to potentially deploy to the Megaeth testnet.
+- Development switched to forking MegaETH testnet (`https://carrot.megaeth.com/rpc`) instead of a clean Anvil node, to match real testnet state.
+- Zero-gas transactions enabled via `--block-base-fee-per-gas 0` on Anvil and `--gas-price 0` on `cast send`.
+
+## Guidelines for AI Agents
+- When suggesting contract changes, ensure `forge build` and `forge test` pass.
+- For frontend changes, keep the design premium, modern, and aesthetic.
+- Use Vanilla CSS for styling unless otherwise specified.
+- Use `ethers.js` or `web3.js` (whichever is in `app.js`) for blockchain interactions.

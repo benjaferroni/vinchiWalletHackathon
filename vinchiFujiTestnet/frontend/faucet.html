@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USDm Faucet - Vinchi Wallet</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo-group">
+                <img src="logo.png" alt="Vinchi Wallet" class="logo-img" onerror="this.style.display='none'">
+                <h1>Vinchi Wallet</h1>
+            </div>
+            <div class="header-right-top">
+                <div class="network-badge">Fuji Testnet</div>
+            </div>
+            <div class="header-right-bottom">
+            </div>
+        </header>
+
+        <div class="tabs-container">
+            <nav class="tabs">
+                <a href="index.html" class="tab">Dashboard</a>
+                <a href="faucet.html" class="tab active">Faucet</a>
+                <a href="orderbook.html" class="tab">Order Book</a>
+            </nav>
+            <div class="wallet-control">
+                <button class="btn-connect" id="btnConnect" onclick="toggleWallet()">Connect Wallet</button>
+                <span class="wallet-address" id="walletAddressDisplay" style="display: none;"></span>
+            </div>
+        </div>
+
+        <main class="dashboard">
+            <!-- Faucet Info -->
+            <section class="card text-center faucet-card">
+                <div class="faucet-icon">
+                    <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                        </path>
+                    </svg>
+                </div>
+                <h2>USDm Testnet Faucet</h2>
+                <p>Welcome to the Vinchi ecosystem on Fuji Testnet. Use this faucet to mint test USDm tokens to your
+                    mock wallet, which you can then deposit in the main dashboard.</p>
+
+                <div class="wallet-balance-display">
+                    <span class="label">Your simulated USDm Balance:</span>
+                    <strong id="mockWalletBalance">$0.00</strong>
+                </div>
+
+                <div class="faucet-actions">
+                    <button class="btn btn-primary full-width" onclick="mintTestUSDm()" id="btnMint">
+                        Mint 1,000 USDm
+                    </button>
+                    <p class="small-note" id="faucetNote">Please connect your wallet first to mint test tokens.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modals (Hidden by default) -->
+    <div class="overlay" id="overlay" onclick="closeModals()"></div>
+
+    <!-- Wallet Selection Modal -->
+    <div class="modal" id="walletSelectionModal">
+        <button class="close-btn" onclick="closeModals()">&times;</button>
+        <h2>Connect Wallet</h2>
+        <p class="modal-subtitle" id="walletModalSubtitle">Select an installed wallet to connect.</p>
+        <div class="wallet-list" id="walletList">
+            <!-- Dynamically populated by EIP-6963 providers -->
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.11.1/ethers.umd.min.js"></script>
+    <script src="contracts.js?v=10"></script>
+    <script src="app.js?v=10"></script>
+</body>
+
+</html>

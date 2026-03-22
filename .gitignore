@@ -1,0 +1,15 @@
+# Node
+node_modules/
+
+# Entornos Virtuales / Variables de entorno
+.env
+
+# Foundry / Configuración local
+out/
+cache/
+broadcast/
+lib/
+
+# Temporales generados
+tmp_translate.js
+tmp_translate.py

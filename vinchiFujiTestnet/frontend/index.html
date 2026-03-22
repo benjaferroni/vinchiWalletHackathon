@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vinchi Wallet - Fuji</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-container">
+        <header>
+            <div class="logo-group">
+                <img src="logo.png" alt="Vinchi Wallet" class="logo-img" onerror="this.style.display='none'">
+                <h1>Vinchi Wallet</h1>
+            </div>
+            <div class="header-right-top">
+                <div class="network-badge">Fuji Testnet</div>
+            </div>
+            <div class="header-right-bottom">
+                <div class="role-container">
+                    <span class="role-label" id="roleLabel">Personal Mode</span>
+                    <label class="switch">
+                        <input type="checkbox" id="roleToggle" onchange="toggleRole()">
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+            </div>
+        </header>
+
+        <div class="tabs-container">
+            <nav class="tabs">
+                <a href="index.html" class="tab active">Dashboard</a>
+                <a href="faucet.html" class="tab">Faucet</a>
+                <a href="orderbook.html" class="tab">Order Book</a>
+            </nav>
+            <div class="wallet-control">
+                <button class="btn-connect" id="btnConnect" onclick="toggleWallet()">Connect Wallet</button>
+                <span class="wallet-address" id="walletAddressDisplay" style="display: none;"></span>
+            </div>
+        </div>
+
+        <main class="dashboard">
+            <!-- Balance Card -->
+            <section class="card balance-card">
+                <div class="card-header">
+                    <h2>Max Spendable Limit</h2>
+                    <span class="currency">USDv / USDm</span>
+                </div>
+                <h3 class="total-balance" id="totalBalance">$0.00</h3>
+
+                <!-- NEW: Explicit USDv Balance Display -->
+                <div class="usdv-display">
+                    <span class="usdv-label">Available USDv Receipts:</span>
+                    <span class="usdv-value" id="usdvBalance">0.00 USDv</span>
+                </div>
+
+                <div class="balance-breakdown" id="balanceBreakdown">
+                    <div class="breakdown-item">
+                        <span>Wallet Balance (USDm):</span>
+                        <span id="dashboardWalletBalance">$0.00</span>
+                    </div>
+                    <div class="breakdown-item">
+                        <span>Deposited USDm:</span>
+                        <span id="usdmBalance">$0.00</span>
+                    </div>
+                    <div class="breakdown-item yield-text">
+                        <span>Extra Yield (USDmY):</span>
+                        <span id="yieldBalance">+$0.00</span>
+                    </div>
+                </div>
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar">
+                        <div class="progress-fill usdm-fill" id="usdmProgress" style="width: 0%"></div>
+                        <div class="progress-fill yield-fill" id="yieldProgress" style="width: 0%"></div>
+                    </div>
+                    <div class="progress-labels">
+                        <span>Principal</span>
+                        <span>Yield</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Actions -->
+            <section class="actions">
+                <button class="btn btn-primary" id="btnDepositAction" onclick="openDepositModal()">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Deposit USDm
+                </button>
+                <button class="btn btn-secondary" onclick="openSendModal()">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                    </svg>
+                    Send USDv
+                </button>
+            </section>
+
+            <!-- Merchant Dashboard (Hidden in Personal Mode) -->
+            <section class="merchant-only" style="display: none; margin-top: 20px;">
+                <div class="card" style="padding: 24px;">
+                    <div class="card-header" style="margin-bottom: 16px;">
+                        <h2>Store Management</h2>
+                        <span class="currency">Merchant</span>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 20px;">
+                        Register your store on the blockchain to receive payments from the Vinchi network.
+                    </p>
+                    <button class="btn btn-primary full-width" onclick="openCreateStoreModal()">Create Store</button>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Modals (Hidden by default) -->
+    <div class="overlay" id="overlay" onclick="closeModals()"></div>
+
+    <!-- Wallet Selection Modal -->
+    <div class="modal" id="walletSelectionModal">
+        <button class="close-btn" onclick="closeModals()">&times;</button>
+        <h2>Connect Wallet</h2>
+        <p class="modal-subtitle" id="walletModalSubtitle">Select an installed wallet to connect.</p>
+        <div class="wallet-list" id="walletList">
+            <!-- Dynamically populated by EIP-6963 providers -->
+        </div>
+    </div>
+
+    <!-- Deposit Modal -->
+    <div class="modal" id="depositModal">
+        <button class="close-btn" onclick="closeModals()">&times;</button>
+        <h2>Deposit USDm</h2>
+        <p class="modal-subtitle">Deposit USDm to start generating USDmY.</p>
+        <div class="input-group">
+            <label>Amount (USDm)</label>
+            <div class="input-with-max">
+                <input type="number" id="depositAmount" placeholder="0.00" min="0">
+                <button class="max-btn" onclick="setMaxDeposit()">Max</button>
+            </div>
+        </div>
+        <div class="yield-preview">
+            <div class="preview-row">
+                <span>Monthly Yield:</span>
+                <span class="highlight" id="previewRate">3%</span>
+            </div>
+            <div class="preview-row total-limit">
+                <span>Projected Max Spendable Limit (1 mo):</span>
+                <strong id="projectedLimit">$0.00</strong>
+            </div>
+        </div>
+        <button class="btn btn-primary full-width" onclick="confirmDeposit()">Confirm Deposit</button>
+    </div>
+
+    <!-- Send Modal -->
+    <div class="modal" id="sendModal">
+        <button class="close-btn" onclick="closeModals()">&times;</button>
+        <h2>Send USDv</h2>
+        <p class="modal-subtitle">Send your spendable balance to another account.</p>
+        <div class="input-group">
+            <label>Recipient Address</label>
+            <input type="text" placeholder="0x..." id="recipientAddress">
+        </div>
+        <div class="input-group">
+            <label>Amount (USDv)</label>
+            <div class="input-with-max">
+                <input type="number" id="sendAmount" placeholder="0.00" min="0">
+                <button class="max-btn" onclick="setMaxSend()">Max</button>
+            </div>
+        </div>
+        <button class="btn btn-primary full-width" onclick="confirmSend()">Send Now</button>
+    </div>
+
+    <!-- Create Store Modal -->
+    <div class="modal" id="createStoreModal">
+        <button class="close-btn" onclick="closeModals()">&times;</button>
+        <h2>Create Store</h2>
+        <p class="modal-subtitle">Register your business details on the Vinchi network.</p>
+        
+        <div class="input-group">
+            <label>Store Name</label>
+            <input type="text" id="storeName" placeholder="e.g. My Commerce">
+        </div>
+        
+        <div class="input-group">
+            <label>Identificatory Color</label>
+            <input type="color" id="storeColor" value="#00a651" style="width: 100%; height: 40px; padding: 0; cursor: pointer; border: 1px solid var(--border); border-radius: 8px;">
+        </div>
+        
+        <div class="input-group">
+            <label>Payment Destination Wallet</label>
+            <input type="text" id="storeRecipient" placeholder="0x... address that will receive payments">
+        </div>
+
+        <button class="btn btn-primary full-width" onclick="confirmCreateStore()">Create Store</button>
+    </div>
+
+    <!-- Notification Toast -->
+    <div class="toast" id="toast"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.11.1/ethers.umd.min.js"></script>
+    <script src="contracts.js?v=10"></script>
+    <script src="app.js?v=10"></script>
+    <script src="clover/vinchi-clover-widget.js"></script>
+    <script>
+      window.VINCHI_CONFIG = {
+        bridgeUrl: 'http://localhost:3001',
+        storeId: 'vinchi-comercio',
+        payerAddress: null // Se lee dinamicamente de globalState.walletAddress
+      };
+      
+      window.VINCHI_CONTRACTS = {
+        usdv: CONTRACT_ADDRESSES.USDv || '0x316d38A9581ffB686A736CcF84E8C9000dd9429C',
+        paymentSettlement: CONTRACT_ADDRESSES.PaymentSettlement || '',
+        storeRegistry: CONTRACT_ADDRESSES.StoreRegistry || '',
+        orderBook: CONTRACT_ADDRESSES.OrderBook || ''
+      };
+      
+      // Toggle merchant-only view
+      const originalApplyRoleUI = window.applyRoleUI;
+      window.applyRoleUI = (role) => {
+          if(originalApplyRoleUI) originalApplyRoleUI(role);
+          const merchantSections = document.querySelectorAll('.merchant-only');
+          merchantSections.forEach(sec => {
+              sec.style.display = role === 'merchant' ? 'block' : 'none';
+          });
+          
+          const balCard = document.querySelector('.balance-card');
+          const actionsBox = document.querySelector('.actions');
+          if (balCard && actionsBox) {
+              if (role === 'merchant') {
+                  balCard.classList.add('merchant-active');
+                  actionsBox.classList.add('merchant-active');
+              } else {
+                  balCard.classList.remove('merchant-active');
+                  actionsBox.classList.remove('merchant-active');
+              }
+          }
+      };
+      
+      // Store creation logic
+      window.openCreateStoreModal = () => {
+          if (!globalState.walletConnected) {
+              alert("Please connect your wallet first.");
+              return;
+          }
+          document.getElementById('storeName').value = '';
+          document.getElementById('storeColor').value = '#00a651';
+          document.getElementById('storeRecipient').value = '';
+          
+          document.getElementById('overlay').classList.add('active');
+          document.getElementById('createStoreModal').classList.add('active');
+      };
+      
+      window.confirmCreateStore = async () => {
+          const name = document.getElementById('storeName').value.trim();
+          const color = document.getElementById('storeColor').value;
+          const recipient = document.getElementById('storeRecipient').value.trim();
+          
+          if(!name) return alert("Enter the store name.");
+          if(!recipient || !ethers.isAddress(recipient)) return alert("Enter a valid destination wallet (0x...).");
+          if(!window.VINCHI_CONTRACTS.storeRegistry) return alert("StoreRegistry address not configured.");
+          
+          try {
+              const provider = new ethers.BrowserProvider(window.activeProvider || window.ethereum);
+              const signer = await provider.getSigner();
+              const registry = new ethers.Contract(
+                  window.VINCHI_CONTRACTS.storeRegistry,
+                  ABIS.StoreRegistry,
+                  signer
+              );
+              
+              showToast("Sign the transaction to create the store...");
+              const tx = await registry.createStore(name, color, recipient);
+              await tx.wait();
+              
+              showToast("Store created successfully.");
+              closeModals();
+          } catch (error) {
+              console.error(error);
+              alert("Error creating store. Check the console.");
+          }
+      };
+    </script>
+</body>
+
+</html>

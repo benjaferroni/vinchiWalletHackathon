@@ -1,0 +1,577 @@
+:root {
+    --bg-color: #E8F7C8;       /* Light, warm green matching the mockup background */
+    --card-bg: #B5FF56;        /* Verde Claro */
+    --primary: #4C7A34;        /* Verde Oscuro */
+    --primary-hover: #3b5f28;  /* Verde Oscuro interactivo */
+    --secondary: #B5FF56;
+    --secondary-hover: #a1ec49;
+    --text-main: #4C7A34;
+    --text-muted: #4C7A34;     /* Uniform dark text */
+    --yield-color: #21CC3C;    /* Verde Normal */
+    --border-color: #4C7A34;
+    --white: #FFFFFF;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Start from top as mockups display */
+}
+
+/* Horizontal line under header like mockup */
+.app-container {
+    width: 100%;
+    max-width: 600px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    position: relative;
+}
+
+/* Header Grid matches Mockup */
+header {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 20px;
+    row-gap: 15px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.logo-group {
+    grid-row: 1 / 3;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.logo-img {
+    width: 100px; /* Size based on mockup proportion */
+    height: 100px;
+    object-fit: cover;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+}
+
+header h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.header-right-top {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.header-right-bottom {
+    grid-column: 2;
+    grid-row: 2;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.network-badge {
+    font-size: 0.85rem;
+    padding: 6px 16px;
+    border-radius: 20px;
+    background: var(--card-bg); /* Verde Claro */
+    color: var(--primary);
+    border: 1px solid var(--primary);
+    font-weight: 600;
+}
+
+/* Role Toggle Container */
+.role-container {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.role-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+/* Switch Styles */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--card-bg);
+    transition: .4s;
+    border: 1px solid var(--border-color);
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 2px;
+    bottom: 2px;
+    background-color: var(--white);
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked+.slider {
+    background-color: var(--primary);
+}
+
+input:checked+.slider:before {
+    transform: translateX(20px);
+}
+
+.slider.round {
+    border-radius: 24px;
+}
+
+.hidden-role-element {
+    display: none !important;
+}
+
+/* Navigation Tabs & Wallet Control */
+.tabs-container {
+    display: flex;
+    align-items: center;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 8px 16px;
+    justify-content: space-between;
+}
+
+.tabs {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.tab {
+    text-decoration: none;
+    color: var(--primary);
+    font-size: 0.9rem;
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 10px;
+    transition: background 0.2s;
+}
+
+.tab:hover {
+    background: rgba(76, 122, 52, 0.1); /* Slight darken */
+}
+
+.tab.active {
+    background: transparent;
+    border: 1px solid var(--border-color);
+}
+
+.wallet-control {
+    display: flex;
+    align-items: center;
+}
+
+.btn-connect, .wallet-address {
+    background: transparent;
+    color: var(--primary);
+    border: 1px solid var(--border-color);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: monospace;
+}
+
+.btn-connect:hover, .wallet-address:hover {
+    background: rgba(76, 122, 52, 0.1);
+}
+
+/* Cards (Flat UI) */
+.card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: none; /* Removed shadow to match flat SVG-like mockup */
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.card-header h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.currency {
+    font-size: 0.85rem;
+    color: var(--primary);
+    font-weight: 600;
+    background: transparent;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+}
+
+/* Balances */
+.total-balance {
+    font-size: 4rem;
+    font-weight: 700;
+    color: var(--primary);
+    letter-spacing: -2px;
+    margin-bottom: 4px;
+}
+
+.usdv-display {
+    font-size: 0.9rem;
+    color: var(--primary);
+    font-weight: 700;
+    margin-bottom: 24px;
+}
+
+.balance-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.breakdown-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 1rem;
+    color: var(--text-main);
+    align-items: center;
+    font-weight: 600;
+}
+
+.yield-text span:last-child {
+    color: var(--yield-color);
+    font-weight: 700;
+}
+
+/* Progress bar inside balance */
+.progress-container {
+    width: 100%;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 12px;
+    background: var(--primary); /* Base color inside the mockup's bar */
+    border-radius: 6px;
+    display: flex;
+    overflow: hidden;
+    margin-bottom: 8px;
+    border: 1px solid var(--primary);
+}
+
+.progress-fill {
+    height: 100%;
+    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.usdm-fill {
+    background: var(--primary);
+}
+
+.yield-fill {
+    background: var(--yield-color);
+}
+
+.progress-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+/* Actions */
+.actions {
+    display: flex;
+    gap: 16px;
+    margin-top: 16px; /* spacing in personal mode */
+}
+
+/* Merchant Active Tweaks */
+.balance-card.merchant-active {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom: 1px solid var(--border-color); /* force border */
+}
+
+.actions.merchant-active {
+    margin-top: 0; 
+}
+
+.actions.merchant-active .btn-secondary {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-top: none; /* remove top border to stick cleanly */
+    transform: translateY(-2px); /* overlap tightly */
+}
+
+.actions.merchant-active .btn-secondary:hover {
+    transform: translateY(-2px) scale(0.99); /* keep overlap */
+}
+
+.btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: var(--white);
+    border: 2px solid var(--primary);
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover);
+}
+
+.btn-secondary {
+    background: var(--primary); /* In the mockup, send is also dark green */
+    color: var(--white);
+    border: 2px solid var(--primary);
+}
+
+.btn-secondary:hover {
+    background: var(--primary-hover);
+}
+
+.btn-danger {
+    background: #e11d48;
+    color: var(--white);
+}
+
+.full-width {
+    width: 100%;
+}
+
+/* Faucet specific */
+.text-center {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.faucet-icon {
+    color: var(--primary);
+    margin-bottom: 16px;
+    background: var(--bg-color); /* Light inner circle matching mockup */
+    padding: 24px;
+    border-radius: 50%;
+    display: inline-flex;
+    border: 1px solid var(--border-color);
+}
+
+.faucet-card h2 {
+    font-size: 1.5rem;
+    color: var(--primary);
+    margin-bottom: 12px;
+    font-weight: 700;
+}
+
+.faucet-card p {
+    color: var(--primary);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 24px;
+    font-weight: 500;
+}
+
+.wallet-balance-display {
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    width: 100%;
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.wallet-balance-display .label {
+    font-size: 0.9rem;
+    color: var(--primary);
+    font-weight: 500;
+}
+
+.wallet-balance-display strong {
+    font-size: 2.2rem;
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.faucet-actions {
+    width: 100%;
+}
+
+.small-note {
+    font-size: 0.85rem;
+    margin-top: 12px;
+    color: #e11d48;
+    font-weight: 600;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Modals */
+.overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(76, 122, 52, 0.4);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.3s ease;
+    z-index: 100;
+}
+
+.overlay.active { opacity: 1; pointer-events: all; }
+
+.modal {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -40%) scale(0.95);
+    width: 90%; max-width: 420px;
+    background: var(--bg-color);
+    border: 2px solid var(--border-color);
+    border-radius: 16px;
+    padding: 32px;
+    z-index: 101;
+    opacity: 0; pointer-events: none;
+    transition: all 0.3s ease;
+    color: var(--text-main);
+}
+
+.modal.active {
+    opacity: 1; pointer-events: all;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+.modal h2 { font-size: 1.5rem; color: var(--primary); margin-bottom: 8px; font-weight: 700; }
+.modal-subtitle { font-size: 0.95rem; color: var(--primary); margin-bottom: 24px; font-weight: 500; }
+
+.close-btn {
+    position: absolute; top: 16px; right: 24px;
+    background: transparent; border: none;
+    color: var(--primary); font-size: 1.8rem;
+    cursor: pointer;
+}
+
+/* Inputs */
+.input-group { margin-bottom: 20px; }
+.input-group label { display: block; font-size: 0.9rem; font-weight: 600; color: var(--primary); margin-bottom: 8px; }
+.input-group input, .input-group select {
+    width: 100%;
+    background: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: var(--primary);
+    font-size: 1rem;
+    font-family: inherit;
+    font-weight: 600;
+    outline: none;
+}
+.input-group input::placeholder { color: rgba(76, 122, 52, 0.5); }
+.input-with-max { position: relative; display: flex; align-items: center; }
+.max-btn {
+    position: absolute; right: 8px;
+    background: var(--card-bg); color: var(--primary);
+    border: 1px solid var(--border-color); border-radius: 6px;
+    padding: 4px 10px; font-weight: 700; cursor: pointer;
+}
+
+.yield-preview {
+    font-size: 0.95rem;
+    background: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 8px; padding: 16px;
+    margin-bottom: 24px;
+}
+.preview-row { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 8px; }
+.preview-row.total-limit { border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 12px; }
+.preview-row .highlight { color: var(--yield-color); }
+
+/* Wallet List */
+.wallet-list { display: flex; flex-direction: column; gap: 12px; }
+.wallet-list-btn {
+    display: flex; align-items: center; gap: 16px;
+    background: var(--white); border: 1px solid var(--border-color);
+    padding: 16px; border-radius: 8px; cursor: pointer;
+    color: var(--primary); font-size: 1.1rem; font-weight: 600;
+}
+
+/* Toast */
+.toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--primary); color: var(--white);
+    border: 1px solid var(--border-color);
+    padding: 12px 24px; border-radius: 8px; font-weight: 600;
+    opacity: 0; transition: all 0.3s; z-index: 1000;
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
